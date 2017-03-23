@@ -279,6 +279,9 @@ class BaseTSDB(object):
         for model, key, values in items:
             self.record(model, key, values, timestamp)
 
+    def merge(self, model, destination, sources):
+        raise NotImplementedError
+
     def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
         """
         Fetch counts of distinct items for each rollup interval within the range.
@@ -296,6 +299,9 @@ class BaseTSDB(object):
         Count the total number of distinct items across multiple counters
         during a time range.
         """
+        raise NotImplementedError
+
+    def merge_distinct_counts(self, model, destination, sources):
         raise NotImplementedError
 
     def record_frequency_multi(self, requests, timestamp=None):
@@ -359,4 +365,7 @@ class BaseTSDB(object):
         and the value is a mapping of ``{item: score, ...}`` containing the
         total score of items over the interval.
         """
+        raise NotImplementedError
+
+    def merge_frequencies(self, model, destination, sources):
         raise NotImplementedError
