@@ -245,24 +245,25 @@ class RedisTSDB(BaseTSDB):
             for rollup, series in data.items():
                 for timestamp, results in series.items():
                     total = sum(int(result.value or 0) for result in results)
-                    destination_counter_key = self.make_counter_key(
-                        model,
-                        self.normalize_to_rollup(timestamp, rollup),
-                        destination_model_key,
-                    )
-                    client.hincrby(
-                        destination_counter_key,
-                        destination_model_key,
-                        total,
-                    )
-                    client.expireat(
-                        destination_counter_key,
-                        self.calculate_expiry(
-                            rollup,
-                            self.rollups[rollup],
-                            timestamp,
-                        ),
-                    )
+                    if total:
+                        destination_counter_key = self.make_counter_key(
+                            model,
+                            self.normalize_to_rollup(timestamp, rollup),
+                            destination_model_key,
+                        )
+                        client.hincrby(
+                            destination_counter_key,
+                            destination_model_key,
+                            total,
+                        )
+                        client.expireat(
+                            destination_counter_key,
+                            self.calculate_expiry(
+                                rollup,
+                                self.rollups[rollup],
+                                timestamp,
+                            ),
+                        )
 
     def record(self, model, key, values, timestamp=None):
         self.record_multi(((model, key, values),), timestamp)
