@@ -318,6 +318,47 @@ function Sketch:increment(items)
     return results
 end
 
+local function response_to_table(response)
+    local result = {}
+    for i = 1, #response, 2 do
+        result[response[i]] = response[i + 1]
+    end
+    return result
+end
+
+function Sketch:export()
+    -- If there's no data, there's nothing meaningful to export.
+    if not self:exists() then
+        return cmsgpack.pack(nil)
+    end
+    return cmsgpack.pack({
+        response_to_table(redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')),
+        response_to_table(redis.call('HGETALL', self.estimates)),
+    })
+end
+
+function Sketch:import(payload)
+    local data = cmsgpack.unpack(payload)
+    if data == nil then
+        return  -- nothing to do here
+    end
+
+    local index, estimators = unpack(data)
+
+    error('not implemented')
+
+    -- If both sides have no estimators (index is not full) then sum the index
+    -- contents together to build the new index, and trigger the estimator
+    -- spillover (if necessary.)
+
+    -- If one side has estimators but the other does not, build the estimators
+    -- for the side without them, merge the estimators, and then merge the
+    -- indices by ???.
+
+    -- If both sides have estimators, merge them, and then merge the indices by
+    -- ???.
+end
+
 
 --[[ Redis API ]]--
 
@@ -518,5 +559,31 @@ return Router:new({
             end
         end,
         true
-    )
+    ),
+
+    EXPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (sketch)
+                    return sketch:export()
+                end,
+                sketches
+            )
+        end,
+        true
+    ),
+
+    IMPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (item)
+                    local sketch, data = unpack(item)
+                    return sketch:import(data)
+                end,
+                zip({sketches, arguments})
+            )
+        end,
+        false
+    ),
+
 })(KEYS, ARGV)
